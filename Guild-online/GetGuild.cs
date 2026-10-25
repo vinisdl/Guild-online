@@ -26,9 +26,21 @@ namespace Guild_online
 
             using var client = new HttpClient();
 
-            client.BaseAddress = new Uri($"https://api.tibiadata.com/v4/guild/{HttpUtility.UrlPathEncode(name)}");
+            client.BaseAddress = new Uri($"https://api.tibiadata.com/v5/guild/{HttpUtility.UrlPathEncode(name)}");
 
-            var guild = await client.GetFromJsonAsync<TibiaData>(client.BaseAddress);
+            using var response = await client.GetAsync(client.BaseAddress);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                return new ContentResult
+                {
+                    Content = await response.Content.ReadAsStringAsync(),
+                    ContentType = response.Content.Headers.ContentType?.ToString() ?? "application/json",
+                    StatusCode = (int)response.StatusCode
+                };
+            }
+
+            var guild = await response.Content.ReadFromJsonAsync<TibiaData>();
 
             var online = guild.Guild.members.Where(x => x.status.Equals("online")).OrderByDescending(x => x.level);
 
